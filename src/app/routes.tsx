@@ -5,8 +5,8 @@ import { WorkoutCreatePage } from './components/WorkoutCreatePage';
 import { WorkoutDetailPage } from './components/WorkoutDetailPage';
 import { CalendarPage } from './components/CalendarPage';
 
-const rawBase = import.meta.env.BASE_URL ?? '/';
-const basename = rawBase.endsWith('/') ? rawBase.slice(0, -1) || '/' : rawBase;
+const viteBaseUrl = import.meta.env.BASE_URL ?? '/';
+const basename = viteBaseUrl.endsWith('/') ? viteBaseUrl.slice(0, -1) || '/' : viteBaseUrl;
 
 export const router = createBrowserRouter(
   [
