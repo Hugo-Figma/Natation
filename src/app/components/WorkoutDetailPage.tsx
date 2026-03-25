@@ -10,11 +10,25 @@ import typstTemplate from '../../typst/workout-template.typ?raw';
 import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout } from '../store/WorkoutContext';
 import { SwimWorkoutSheet } from './SwimWorkoutSheet';
 
-const typstCompilerPromise = (async () => {
-  const compiler = createTypstCompiler();
-  await compiler.init();
-  return compiler;
-})();
+let typstCompilerPromise: Promise<ReturnType<typeof createTypstCompiler>> | null = null;
+
+const getTypstCompiler = () => {
+  if (!typstCompilerPromise) {
+    const wasmUrl = new URL(
+      '@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm',
+      import.meta.url
+    );
+
+    typstCompilerPromise = (async () => {
+      const compiler = createTypstCompiler();
+      await compiler.init({
+        getModule: () => fetch(wasmUrl).then(res => res.arrayBuffer()),
+      });
+      return compiler;
+    })();
+  }
+  return typstCompilerPromise;
+};
 
 const escapeTypstString = (value: string) =>
   value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
@@ -52,17 +66,15 @@ const buildTypstWorkoutPayload = (workout: Workout) => {
 };
 
 async function generateWorkoutPdf(workout: Workout) {
-  const compiler = await typstCompilerPromise;
+  const compiler = await getTypstCompiler();
   await compiler.reset();
 
   compiler.addSource('/workout-template.typ', typstTemplate);
-  compiler.addSource(
-    '/main.typ',
-    `
+  const mainSource = `
 #import "/workout-template.typ": render-workout
 #show: render-workout(${buildTypstWorkoutPayload(workout)})
-    `.trim()
-  );
+  `;
+  compiler.addSource('/main.typ', mainSource);
 
   const result = await compiler.compile({
     mainFilePath: '/main.typ',
@@ -70,7 +82,10 @@ async function generateWorkoutPdf(workout: Workout) {
   });
 
   if (!result.result) {
-    throw new Error('Typst compilation failed');
+    const diagnostics = result.diagnostics
+      ?.map(d => (typeof d === 'string' ? d : JSON.stringify(d)))
+      .join('\n');
+    throw new Error(`Typst compilation failed${diagnostics ? `:\n${diagnostics}` : ''}`);
   }
 
   return result.result;
@@ -82,7 +97,8 @@ async function exportWorkoutPdf(workout: Workout) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${workout.name.replace(/\s+/g, '_')}.pdf`;
+  const safeName = workout.name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_');
+  a.download = `${safeName}.pdf`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -255,7 +271,8 @@ export function WorkoutDetailPage() {
                       await exportWorkoutPdf(workout);
                     } catch (err) {
                       console.error(err);
-                      alert('Impossible de générer le PDF, merci de réessayer.');
+                      const message = err instanceof Error ? err.message : String(err);
+                      alert(`Impossible de générer le PDF : ${message}`);
                     } finally {
                       setExportingPdf(false);
                       setMenuOpen(false);
