@@ -294,7 +294,7 @@ function WorkoutCreateInner() {
     setSections(prev => prev.map(s => s.id !== sectionId ? s : {
       ...s, exercises: s.exercises.map(e => {
         if (e.id !== exId) return e;
-        const stripped = e.distance.replace(/\s*(m|km|min|s|rép\.?|reps?)\s*$/i, '');
+        const stripped = e.distance.replace(/\d+\s*(m|km|min|s|rép\.?|reps?)\s*$/i, match => match.replace(/\s*(m|km|min|s|rép\.?|reps?)\s*$/i, ''));
         const nextDistance = normalizeDistance(stripped || e.distance, unit) || stripped || e.distance;
         return { ...e, unit, distance: nextDistance };
       }),
@@ -332,7 +332,7 @@ function WorkoutCreateInner() {
       ...s,
       exercises: [...s.exercises, {
         id: generateId(), description: customDesc.trim(),
-        type: customType, distance: normalizeDistance(customDistance, customUnit) || '50m', unit: customUnit,
+        type: customType, distance: normalizeDistance(customDistance, customUnit) || DEFAULT_UNIT_VALUE[customUnit], unit: customUnit,
       }],
     }));
     setCustomDesc(''); setCustomDistance(''); setCustomUnit('m'); setShowCustom(false);
