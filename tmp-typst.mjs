@@ -9,11 +9,11 @@ const wasmPath = path.join('./node_modules/@myriaddreamin/typst-ts-web-compiler/
 
 const main = `
 #import "/workout-template.typ": render-workout
-#show: render-workout((
+#show: doc => render-workout((
   name: "Test",
   type: "Endurance",
-  created-at: "2024-01-01",
-  total-distance: 100,
+  "created-at": "2024-01-01",
+  "total-distance": 100,
   sections: ((
     title: "T",
     comment: "c",
@@ -22,8 +22,8 @@ const main = `
       distance: "100m",
       type: "warmup",
       unit: "m",
-    ))
-  ))
+    ),)
+  ),)
 ))
 `;
 

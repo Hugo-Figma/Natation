@@ -1,5 +1,5 @@
 #set page(width: 210mm, height: 297mm, margin: 1.8cm)
-#set text(font: "Noto Sans", size: 11pt, lang: "fr")
+#set text(size: 11pt, lang: "fr")
 
 #let type-colors = (
   "Physique": (accent: rgb(249, 115, 22),  light: rgb(254, 237, 213)),
@@ -33,7 +33,7 @@
 ]
 
 #let exercise-row(ex) = [
-  #let palette = exercise-colors.at(ex.type, (bg: rgb(243, 244, 246), accent: rgb(59, 130, 246)))
+  #let palette = exercise-colors.at(ex.type, default: (bg: rgb(243, 244, 246), accent: rgb(59, 130, 246)))
   #box(
     fill: palette.bg,
     radius: 8pt,
@@ -60,7 +60,7 @@
   #align(center + horizon)[
     #set text(fill: white)
     #text("Distance totale", size: 10pt, weight: "medium")
-    #text(str(workout.total-distance) + " m", size: 18pt, weight: "bold")
+    #text(str(workout.at("total-distance", default: 0)) + " m", size: 18pt, weight: "bold")
   ]
 ]
 
@@ -69,8 +69,8 @@
   radius: 10pt,
   inset: 12pt,
   fill: white,
-  shadow: (x: 0pt, y: 1pt, blur: 6pt, color: rgba(15, 23, 42, 10%)),
 )[
+  #let exercises = array(section.exercises)
   #stack(
     spacing: 8pt,
     [
@@ -82,14 +82,15 @@
         #text(section.title, weight: "bold", fill: accent.accent, size: 12pt)
       ]
       #stack(spacing: 6pt)[
-        #for ex in section.exercises [ #exercise-row(ex) ]
+        #for ex in exercises [ #exercise-row(ex) ]
       ]
     ],
   )
 ]
 
-#let render-workout(workout: dictionary) = [
-  #let accent = type-colors.at(workout.type, (accent: rgb(59, 130, 246), light: rgb(219, 234, 254)))
+#let render-workout(workout) = [
+  #let accent = type-colors.at(workout.type, default: (accent: rgb(59, 130, 246), light: rgb(219, 234, 254)))
+  #let sections = array(workout.sections)
   #stack(
     spacing: 14pt,
     [
@@ -103,7 +104,7 @@
           spacing: 6pt,
           [
             #text(workout.name, size: 20pt, weight: "bold", fill: accent.accent)
-            #let date = workout.at("created-at", none)
+            #let date = workout.at("created-at", default: none)
             #grid(columns: (auto, auto, 1fr), gutter: 8pt)[
               #chip(workout.type, accent)
               #if (date != none and date != "") [
@@ -120,7 +121,7 @@
         )
       ]
       #stack(spacing: 10pt)[
-        #for section in workout.sections [
+        #for section in sections [
           #section-block(section, accent)
         ]
       ]

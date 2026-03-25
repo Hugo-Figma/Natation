@@ -47,16 +47,16 @@ const buildTypstWorkoutPayload = (workout: Workout) => {
     return `(
       title: "${escapeTypstString(section.title)}",
       comment: "${escapeTypstString(section.comment ?? '')}",
-      exercises: (${exercises})
+      exercises: (${exercises},)
     )`;
   }).join(',');
 
   return `(
     name: "${escapeTypstString(workout.name)}",
     type: "${escapeTypstString(workout.type)}",
-    created-at: "${escapeTypstString(workout.createdAt ?? '')}",
-    total-distance: ${sectionsToMeters(workout.sections)},
-    sections: (${sections})
+    "created-at": "${escapeTypstString(workout.createdAt ?? '')}",
+    "total-distance": ${sectionsToMeters(workout.sections)},
+    sections: (${sections},)
   )`;
 };
 
@@ -67,7 +67,7 @@ async function generateWorkoutPdf(workout: Workout) {
   compiler.addSource('/workout-template.typ', typstTemplate);
   const mainSource = `
 #import "/workout-template.typ": render-workout
-#show: render-workout(${buildTypstWorkoutPayload(workout)})
+#show: doc => render-workout(${buildTypstWorkoutPayload(workout)})
   `;
   compiler.addSource('/main.typ', mainSource);
 
