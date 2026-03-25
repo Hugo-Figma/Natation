@@ -233,10 +233,11 @@ const WorkoutContext = createContext<WorkoutContextType | null>(null);
 const WORKOUTS_STORAGE_KEY = 'natation.workouts.v1';
 
 const inferUnit = (distance: string): DistanceUnit => {
-  const val = (distance ?? '').toLowerCase();
-  if (val.includes('km')) return 'km';
-  if (val.includes('min')) return 'min';
-  if (val.includes('s')) return 's';
+  const val = (distance ?? '').trim().toLowerCase();
+  if (/\bkm\b/i.test(val) || /\d\s*km\b/i.test(val)) return 'km';
+  if (/\bmin\b/i.test(val) || /\d\s*min\b/i.test(val)) return 'min';
+  if (/\bs\b/i.test(val) || /\d\s*s\b/i.test(val)) return 's';
+  if (/rép\.?$/i.test(val) || /\brep\b/i.test(val)) return 'reps';
   return 'm';
 };
 
@@ -256,7 +257,7 @@ export const exerciseToMeters = (exercise: WorkoutExercise): number => {
   return unit === 'km' ? amount * 1000 : amount;
 };
 
-export const sectionsToMeters = (sections: { exercises: { distance: string; unit?: DistanceUnit }[] }[]) =>
+export const sectionsToMeters = (sections: WorkoutSection[]) =>
   sections.reduce(
     (sum, section) =>
       sum + section.exercises.reduce((ss, ex) => ss + exerciseToMeters(ex), 0),
