@@ -238,7 +238,7 @@ const inferUnit = (distance: string): DistanceUnit => {
   if (/\bkm\b/i.test(val) || /\d\s*km\b/i.test(val)) return 'km';
   if (/\bmin\b/i.test(val) || /\d\s*min\b/i.test(val)) return 'min';
   if (/\bs\b/i.test(val) || /\d\s*s\b/i.test(val)) return 's';
-  if (/rép\.?$/i.test(val) || /\brep\b/i.test(val)) return 'reps';
+  if (/rép\.?$/i.test(val) || /\brep\b/i.test(val) || /\breps?\b/i.test(val)) return 'reps';
   return 'm';
 };
 
@@ -250,7 +250,7 @@ const inferUnit = (distance: string): DistanceUnit => {
  * Commas are normalized to dots. Returns null when no number is found.
  */
 const extractNumericAmount = (distance: string): number | null => {
-  const normalized = (distance ?? '').replace(',', '.');
+  const normalized = (distance ?? '').replace(/,/g, '.');
   const multi = normalized.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
   if (multi) return parseFloat(multi[1]) * parseFloat(multi[2]);
   const single = normalized.match(/(\d+(?:\.\d+)?)/);
