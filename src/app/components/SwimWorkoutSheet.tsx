@@ -1,13 +1,16 @@
 import { Waves, Activity, Zap, Wind, Heart, CheckCircle } from 'lucide-react';
+import { DistanceUnit, sectionsToMeters } from '../store/WorkoutContext';
 
 interface Exercise {
   distance: string;
+  unit?: DistanceUnit;
   type: 'warmup' | 'arms' | 'legs' | 'intense' | 'recovery' | 'technical' | 'fins' | 'fullbody';
   description: string;
 }
 
 interface Section {
   title: string;
+  comment?: string;
   exercises: Exercise[];
 }
 
@@ -71,11 +74,8 @@ export function SwimWorkoutSheet({ workout }: SwimWorkoutSheetProps) {
     }
   };
 
-  const totalDistance = workout.sections.reduce(
-    (sum, section) =>
-      sum + section.exercises.reduce((ss, ex) => ss + (parseInt(ex.distance) || 0), 0),
-    0
-  );
+  const totalDistance = sectionsToMeters(workout.sections);
+  const roundedTotalDistance = Math.round(totalDistance);
 
   return (
     <div className="bg-gradient-to-br from-blue-50 via-white to-cyan-50 print:bg-white">
@@ -110,6 +110,9 @@ export function SwimWorkoutSheet({ workout }: SwimWorkoutSheetProps) {
                 <h2 className="text-sm sm:text-lg font-bold text-blue-900 uppercase tracking-wide">{section.title}</h2>
                 <div className="h-1 flex-1 bg-blue-200 rounded" />
               </div>
+              {section.comment && (
+                <p className="text-[11px] sm:text-sm text-gray-600 mb-2 italic">{section.comment}</p>
+              )}
 
               {/* Exercices */}
               <div className="space-y-1.5 sm:space-y-2">
@@ -155,7 +158,7 @@ export function SwimWorkoutSheet({ workout }: SwimWorkoutSheetProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm opacity-90">Distance totale</p>
-              <p className="text-2xl sm:text-3xl font-bold">{totalDistance}m</p>
+              <p className="text-2xl sm:text-3xl font-bold">{roundedTotalDistance}m</p>
             </div>
             <Waves className="w-8 h-8 sm:w-12 sm:h-12 opacity-50" />
           </div>

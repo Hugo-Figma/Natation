@@ -32,7 +32,7 @@
   #label
 ]
 
-#let exercise-row(ex) = {
+#let exercise-row(ex) = [
   #let palette = exercise-colors.at(ex.type, (bg: rgb(243, 244, 246), accent: rgb(59, 130, 246)))
   #box(
     fill: palette.bg,
@@ -50,7 +50,7 @@
       ],
     )
   ]
-}
+]
 
 #let workout-summary(workout, accent) = box(
   fill: accent.accent,
@@ -82,13 +82,13 @@
         #text(section.title, weight: "bold", fill: accent.accent, size: 12pt)
       ]
       #stack(spacing: 6pt)[
-        #for ex in section.exercises { #exercise-row(ex) }
+        #for ex in section.exercises [ #exercise-row(ex) ]
       ]
     ],
   )
 ]
 
-#let render-workout(workout: dictionary) = {
+#let render-workout(workout: dictionary) = [
   #let accent = type-colors.at(workout.type, (accent: rgb(59, 130, 246), light: rgb(219, 234, 254)))
   #stack(
     spacing: 14pt,
@@ -103,27 +103,28 @@
           spacing: 6pt,
           [
             #text(workout.name, size: 20pt, weight: "bold", fill: accent.accent)
+            #let date = workout.at("created-at", none)
             #grid(columns: (auto, auto, 1fr), gutter: 8pt)[
               #chip(workout.type, accent)
-              #if let date = workout.at("created-at", none); date != none && date != "" {
+              #if (date != none and date != "") [
                 #box(
                   inset: (x: 8pt, y: 4pt),
                   radius: 8pt,
                   fill: rgb(248, 250, 252),
                   stroke: (paint: rgb(203, 213, 225), thickness: 0.7pt),
                 )[ #text("Créé le " + date, size: 9pt, fill: rgb(71, 85, 105)) ]
-              }
+              ]
               #box()
             ]
           ],
         )
       ]
       #stack(spacing: 10pt)[
-        #for section in workout.sections {
+        #for section in workout.sections [
           #section-block(section, accent)
-        }
+        ]
       ]
       #workout-summary(workout, accent)
     ],
   )
-}
+]
