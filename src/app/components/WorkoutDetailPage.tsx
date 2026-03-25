@@ -95,14 +95,17 @@ async function exportWorkoutPdf(workout: Workout) {
   const pdfBytes = await generateWorkoutPdf(workout);
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const safeName = workout.name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_');
-  a.download = `${safeName}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = workout.name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_');
+    a.download = `${safeName}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
