@@ -2,10 +2,92 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
 import {
   ArrowLeft, Printer, CheckCircle, Star, X, Trash2,
-  MoreVertical, Download, Copy,
+  MoreVertical, Download, Copy, FileText,
 } from 'lucide-react';
-import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType } from '../store/WorkoutContext';
+import { createTypstCompiler } from '@myriaddreamin/typst.ts';
+import { CompileFormatEnum } from '@myriaddreamin/typst.ts/compiler';
+import typstTemplate from '../../typst/workout-template.typ?raw';
+import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout } from '../store/WorkoutContext';
 import { SwimWorkoutSheet } from './SwimWorkoutSheet';
+
+const typstCompilerPromise = (async () => {
+  const compiler = createTypstCompiler();
+  await compiler.init();
+  return compiler;
+})();
+
+const escapeTypstString = (value: string) =>
+  value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+
+const computeTotalDistance = (sections: Workout['sections']) =>
+  sections.reduce(
+    (sum, section) =>
+      sum + section.exercises.reduce((ss, ex) => ss + (parseInt(ex.distance, 10) || 0), 0),
+    0
+  );
+
+const buildTypstWorkoutPayload = (workout: Workout) => {
+  const sections = workout.sections.map(section => {
+    const exercises = section.exercises
+      .map(ex => `(
+        description: "${escapeTypstString(ex.description)}",
+        distance: "${escapeTypstString(ex.distance)}",
+        type: "${escapeTypstString(ex.type)}",
+      )`)
+      .join(',');
+
+    return `(
+      title: "${escapeTypstString(section.title)}",
+      exercises: (${exercises})
+    )`;
+  }).join(',');
+
+  return `(
+    name: "${escapeTypstString(workout.name)}",
+    type: "${escapeTypstString(workout.type)}",
+    created-at: "${escapeTypstString(workout.createdAt ?? '')}",
+    total-distance: ${computeTotalDistance(workout.sections)},
+    sections: (${sections})
+  )`;
+};
+
+async function generateWorkoutPdf(workout: Workout) {
+  const compiler = await typstCompilerPromise;
+  await compiler.reset();
+
+  compiler.addSource('/workout-template.typ', typstTemplate);
+  compiler.addSource(
+    '/main.typ',
+    `
+#import "/workout-template.typ": render-workout
+#show: render-workout(${buildTypstWorkoutPayload(workout)})
+    `.trim()
+  );
+
+  const result = await compiler.compile({
+    mainFilePath: '/main.typ',
+    format: CompileFormatEnum.pdf,
+  });
+
+  if (!result.result) {
+    throw new Error('Typst compilation failed');
+  }
+
+  return result.result;
+}
+
+async function exportWorkoutPdf(workout: Workout) {
+  const pdfBytes = await generateWorkoutPdf(workout);
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${workout.name.replace(/\s+/g, '_')}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
@@ -66,6 +148,7 @@ export function WorkoutDetailPage() {
   // Actions dropdown
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -164,6 +247,25 @@ export function WorkoutDetailPage() {
                 >
                   <Printer className="w-4 h-4 text-blue-500" />
                   Imprimer
+                </button>
+                <button
+                  onClick={async () => {
+                    setExportingPdf(true);
+                    try {
+                      await exportWorkoutPdf(workout);
+                    } catch (err) {
+                      console.error(err);
+                      alert('Impossible de générer le PDF, merci de réessayer.');
+                    } finally {
+                      setExportingPdf(false);
+                      setMenuOpen(false);
+                    }
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={exportingPdf}
+                >
+                  <FileText className="w-4 h-4 text-emerald-500" />
+                  {exportingPdf ? 'Export PDF…' : 'Exporter PDF'}
                 </button>
                 <button
                   onClick={() => { exportWorkoutJSON(workout); setMenuOpen(false); }}
