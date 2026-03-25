@@ -237,7 +237,7 @@ const inferUnit = (distance: string): DistanceUnit => {
   // First regex matches standalone unit, second matches "number + unit" with optional space
   if (/\bkm\b/i.test(val) || /\d\s*km\b/i.test(val)) return 'km';
   if (/\bmin\b/i.test(val) || /\d\s*min\b/i.test(val)) return 'min';
-  if (/(^|\s)\d+(?:\.\d+)?\s*s\b/i.test(val) || /^\s*s\b/i.test(val)) return 's';
+  if (/(?:^|\s)\d+(?:\.\d+)?\s*s\b/i.test(val)) return 's';
   if (/rép\.?$/i.test(val) || /\brep\b/i.test(val) || /\breps?\b/i.test(val)) return 'reps';
   return 'm';
 };
