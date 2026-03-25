@@ -25,6 +25,13 @@ const DISTANCE_UNITS: { value: DistanceUnit; label: string }[] = [
   { value: 's', label: 's' },
   { value: 'reps', label: 'rép.' },
 ];
+const DEFAULT_UNIT_VALUE: Record<DistanceUnit, string> = {
+  m: '50m',
+  km: '0.1km',
+  min: '1min',
+  s: '30s',
+  reps: '1 rép.',
+};
 const DRAG_TYPE = 'EXERCISE_ITEM';
 
 /** Appends unit suffix if the value is purely numeric (e.g. "100" → "100m"). Leaves "4×50", "3×30" untouched. */
@@ -253,14 +260,7 @@ function WorkoutCreateInner() {
   const confirmPending = (sectionId: string) => {
     const section = sections.find(s => s.id === sectionId);
     if (!section?.pendingExercise) return;
-    const fallbackByUnit = (unit: DistanceUnit) => {
-      if (unit === 'km') return '0.1km';
-      if (unit === 'min') return '1min';
-      if (unit === 's') return '30s';
-      if (unit === 'reps') return '1 rép.';
-      return '50m';
-    };
-    const dist = normalizeDistance(section.pendingDistance, section.pendingUnit) || fallbackByUnit(section.pendingUnit);
+    const dist = normalizeDistance(section.pendingDistance, section.pendingUnit) || DEFAULT_UNIT_VALUE[section.pendingUnit];
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s;
       return {

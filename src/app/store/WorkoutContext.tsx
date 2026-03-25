@@ -234,6 +234,7 @@ const WORKOUTS_STORAGE_KEY = 'natation.workouts.v1';
 
 const inferUnit = (distance: string): DistanceUnit => {
   const val = (distance ?? '').trim().toLowerCase();
+  // First regex matches standalone unit, second matches "number + unit" with optional space
   if (/\bkm\b/i.test(val) || /\d\s*km\b/i.test(val)) return 'km';
   if (/\bmin\b/i.test(val) || /\d\s*min\b/i.test(val)) return 'min';
   if (/\bs\b/i.test(val) || /\d\s*s\b/i.test(val)) return 's';
@@ -241,6 +242,13 @@ const inferUnit = (distance: string): DistanceUnit => {
   return 'm';
 };
 
+/**
+ * Extracts the numeric quantity from a distance string.
+ * Supports:
+ * - Multiplicative patterns like "4x50m", "3×25" (returns 200, 75)
+ * - Simple numbers like "100m" or "1.2km" (returns 100 or 1.2)
+ * Commas are normalized to dots. Returns null when no number is found.
+ */
 const extractNumericAmount = (distance: string): number | null => {
   const normalized = (distance ?? '').replace(',', '.');
   const multi = normalized.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
