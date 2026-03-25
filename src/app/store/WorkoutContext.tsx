@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 export type ExerciseType = 'warmup' | 'arms' | 'legs' | 'intense' | 'recovery' | 'technical' | 'fins' | 'fullbody';
 export type WorkoutType = 'Physique' | 'Endurance' | 'Apnée' | 'Technique' | 'Mixte' | 'Vitesse' | 'Récupération';
+export type DistanceUnit = 'm' | 'km' | 'min' | 's' | 'reps';
 
 export const EXERCISE_TYPE_LABELS: Record<ExerciseType, string> = {
   warmup: 'Échauffement',
@@ -57,11 +58,13 @@ export interface WorkoutExercise {
   description: string;
   type: ExerciseType;
   distance: string;
+  unit?: DistanceUnit;
 }
 
 export interface WorkoutSection {
   id: string;
   title: string;
+  comment?: string;
   exercises: WorkoutExercise[];
 }
 
@@ -128,74 +131,74 @@ const MOCK_WORKOUTS: Workout[] = [
   {
     id: 'workout-1', name: 'Séance Technique', type: 'Technique', createdAt: '2026-02-20',
     sections: [
-      { id: 'sec-1-1', title: 'Échauffement', exercises: [
-        { id: 'ex-1-1-1', description: 'Échauffement nage libre',  type: 'warmup',  distance: '100m' },
-        { id: 'ex-1-1-2', description: 'Bras / pullbuoy',          type: 'arms',    distance: '150m' },
-        { id: 'ex-1-1-3', description: 'Battement / planche',      type: 'legs',    distance: '50m'  },
+      { id: 'sec-1-1', title: 'Échauffement', comment: '10 min tranquille', exercises: [
+        { id: 'ex-1-1-1', description: 'Échauffement nage libre',  type: 'warmup',  distance: '100m', unit: 'm' },
+        { id: 'ex-1-1-2', description: 'Bras / pullbuoy',          type: 'arms',    distance: '150m', unit: 'm' },
+        { id: 'ex-1-1-3', description: 'Battement / planche',      type: 'legs',    distance: '50m',  unit: 'm'  },
       ]},
-      { id: 'sec-1-2', title: 'Séries avec palmes', exercises: [
-        { id: 'ex-1-2-1', description: 'Battement palmes / planche',                 type: 'fins',     distance: '100m' },
-        { id: 'ex-1-2-2', description: '12,5 lent / 12,5 rapide - palmes / planche', type: 'fins',     distance: '150m' },
-        { id: 'ex-1-2-3', description: 'Récupération nage libre lente',              type: 'recovery', distance: '50m'  },
-        { id: 'ex-1-2-4', description: '25 rapide / 25 lent - palmes / planche',     type: 'intense',  distance: '150m' },
-        { id: 'ex-1-2-5', description: 'Récupération nage libre lente',              type: 'recovery', distance: '50m'  },
+      { id: 'sec-1-2', title: 'Séries avec palmes', comment: 'Travail vitesse', exercises: [
+        { id: 'ex-1-2-1', description: 'Battement palmes / planche',                 type: 'fins',     distance: '100m', unit: 'm' },
+        { id: 'ex-1-2-2', description: '12,5 lent / 12,5 rapide - palmes / planche', type: 'fins',     distance: '150m', unit: 'm' },
+        { id: 'ex-1-2-3', description: 'Récupération nage libre lente',              type: 'recovery', distance: '50m',  unit: 'm'  },
+        { id: 'ex-1-2-4', description: '25 rapide / 25 lent - palmes / planche',     type: 'intense',  distance: '150m', unit: 'm' },
+        { id: 'ex-1-2-5', description: 'Récupération nage libre lente',              type: 'recovery', distance: '50m',  unit: 'm'  },
       ]},
-      { id: 'sec-1-3', title: 'Technique et vitesse', exercises: [
-        { id: 'ex-1-3-1', description: 'Planche « barrage »',                    type: 'technical', distance: '100m' },
-        { id: 'ex-1-3-2', description: 'Rapide : 12,5 classique / 12,5 barrage', type: 'intense',   distance: '100m' },
+      { id: 'sec-1-3', title: 'Technique et vitesse', comment: 'Focus virages', exercises: [
+        { id: 'ex-1-3-1', description: 'Planche « barrage »',                    type: 'technical', distance: '100m', unit: 'm' },
+        { id: 'ex-1-3-2', description: 'Rapide : 12,5 classique / 12,5 barrage', type: 'intense',   distance: '100m', unit: 'm' },
       ]},
     ],
   },
   {
     id: 'workout-2', name: 'Endurance longue distance', type: 'Endurance', createdAt: '2026-03-01',
     sections: [
-      { id: 'sec-2-1', title: 'Échauffement', exercises: [
-        { id: 'ex-2-1-1', description: 'Échauffement mixte 4 nages', type: 'warmup', distance: '200m' },
-        { id: 'ex-2-1-2', description: 'Pullbuoy (sans palmes)',      type: 'arms',   distance: '250m' },
+      { id: 'sec-2-1', title: 'Échauffement', comment: '8-10 min progressif', exercises: [
+        { id: 'ex-2-1-1', description: 'Échauffement mixte 4 nages', type: 'warmup', distance: '200m', unit: 'm' },
+        { id: 'ex-2-1-2', description: 'Pullbuoy (sans palmes)',      type: 'arms',   distance: '250m', unit: 'm' },
       ]},
-      { id: 'sec-2-2', title: 'Bloc endurance', exercises: [
-        { id: 'ex-2-2-1', description: 'Nage libre endurance', type: 'fullbody',  distance: '400m' },
-        { id: 'ex-2-2-2', description: 'Récupération dos',     type: 'recovery',  distance: '100m' },
-        { id: 'ex-2-2-3', description: 'Nage libre endurance', type: 'fullbody',  distance: '400m' },
+      { id: 'sec-2-2', title: 'Bloc endurance', comment: 'Travail constant', exercises: [
+        { id: 'ex-2-2-1', description: 'Nage libre endurance', type: 'fullbody',  distance: '400m', unit: 'm' },
+        { id: 'ex-2-2-2', description: 'Récupération dos',     type: 'recovery',  distance: '100m', unit: 'm' },
+        { id: 'ex-2-2-3', description: 'Nage libre endurance', type: 'fullbody',  distance: '400m', unit: 'm' },
       ]},
-      { id: 'sec-2-3', title: 'Retour au calme', exercises: [
-        { id: 'ex-2-3-1', description: 'Retour au calme nage libre', type: 'recovery', distance: '100m' },
+      { id: 'sec-2-3', title: 'Retour au calme', comment: 'Souple', exercises: [
+        { id: 'ex-2-3-1', description: 'Retour au calme nage libre', type: 'recovery', distance: '100m', unit: 'm' },
       ]},
     ],
   },
   {
     id: 'workout-3', name: 'Apnée et souffle', type: 'Apnée', createdAt: '2026-03-10',
     sections: [
-      { id: 'sec-3-1', title: 'Échauffement', exercises: [
-        { id: 'ex-3-1-1', description: 'Échauffement nage libre', type: 'warmup', distance: '200m' },
-        { id: 'ex-3-1-2', description: 'Battement / planche',     type: 'legs',   distance: '100m' },
+      { id: 'sec-3-1', title: 'Échauffement', comment: 'Respiration contrôlée', exercises: [
+        { id: 'ex-3-1-1', description: 'Échauffement nage libre', type: 'warmup', distance: '200m', unit: 'm' },
+        { id: 'ex-3-1-2', description: 'Battement / planche',     type: 'legs',   distance: '100m', unit: 'm' },
       ]},
-      { id: 'sec-3-2', title: 'Travail apnée', exercises: [
-        { id: 'ex-3-2-1', description: 'Apnée statique',               type: 'technical', distance: '3×30s' },
-        { id: 'ex-3-2-2', description: 'Récupération nage libre lente', type: 'recovery', distance: '50m'   },
-        { id: 'ex-3-2-3', description: 'Apnée dynamique',               type: 'technical', distance: '4×25m' },
-        { id: 'ex-3-2-4', description: 'Récupération nage libre lente', type: 'recovery', distance: '100m'  },
+      { id: 'sec-3-2', title: 'Travail apnée', comment: 'Prendre le temps de récupération', exercises: [
+        { id: 'ex-3-2-1', description: 'Apnée statique',               type: 'technical', distance: '3×30s', unit: 's' },
+        { id: 'ex-3-2-2', description: 'Récupération nage libre lente', type: 'recovery', distance: '50m',   unit: 'm'   },
+        { id: 'ex-3-2-3', description: 'Apnée dynamique',               type: 'technical', distance: '4×25m', unit: 'm' },
+        { id: 'ex-3-2-4', description: 'Récupération nage libre lente', type: 'recovery', distance: '100m',  unit: 'm'  },
       ]},
-      { id: 'sec-3-3', title: 'Finition', exercises: [
-        { id: 'ex-3-3-1', description: 'Nage complète PMT',          type: 'fullbody',  distance: '200m' },
-        { id: 'ex-3-3-2', description: 'Retour au calme nage libre', type: 'recovery',  distance: '100m' },
+      { id: 'sec-3-3', title: 'Finition', comment: 'Doucement', exercises: [
+        { id: 'ex-3-3-1', description: 'Nage complète PMT',          type: 'fullbody',  distance: '200m', unit: 'm' },
+        { id: 'ex-3-3-2', description: 'Retour au calme nage libre', type: 'recovery',  distance: '100m', unit: 'm' },
       ]},
     ],
   },
   {
     id: 'workout-4', name: 'Force et puissance', type: 'Physique', createdAt: '2026-03-08',
     sections: [
-      { id: 'sec-4-1', title: 'Activation', exercises: [
-        { id: 'ex-4-1-1', description: 'Échauffement nage libre', type: 'warmup', distance: '200m' },
+      { id: 'sec-4-1', title: 'Activation', comment: '8 min', exercises: [
+        { id: 'ex-4-1-1', description: 'Échauffement nage libre', type: 'warmup', distance: '200m', unit: 'm' },
       ]},
-      { id: 'sec-4-2', title: 'Travail de puissance', exercises: [
-        { id: 'ex-4-2-1', description: 'Sprint 25m',                    type: 'intense',  distance: '8×25m' },
-        { id: 'ex-4-2-2', description: 'Récupération nage libre lente', type: 'recovery', distance: '50m'   },
-        { id: 'ex-4-2-3', description: 'Intervalles intensité max',     type: 'intense',  distance: '4×50m' },
-        { id: 'ex-4-2-4', description: 'Récupération nage libre lente', type: 'recovery', distance: '100m'  },
+      { id: 'sec-4-2', title: 'Travail de puissance', comment: 'Récup 1min entre séries', exercises: [
+        { id: 'ex-4-2-1', description: 'Sprint 25m',                    type: 'intense',  distance: '8×25m', unit: 'm' },
+        { id: 'ex-4-2-2', description: 'Récupération nage libre lente', type: 'recovery', distance: '50m',   unit: 'm'   },
+        { id: 'ex-4-2-3', description: 'Intervalles intensité max',     type: 'intense',  distance: '4×50m', unit: 'm' },
+        { id: 'ex-4-2-4', description: 'Récupération nage libre lente', type: 'recovery', distance: '100m',  unit: 'm'  },
       ]},
-      { id: 'sec-4-3', title: 'Cool down', exercises: [
-        { id: 'ex-4-3-1', description: 'Retour au calme nage libre', type: 'recovery', distance: '200m' },
+      { id: 'sec-4-3', title: 'Cool down', comment: 'Fin très souple', exercises: [
+        { id: 'ex-4-3-1', description: 'Retour au calme nage libre', type: 'recovery', distance: '200m', unit: 'm' },
       ]},
     ],
   },
@@ -227,14 +230,84 @@ interface WorkoutContextType {
 
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
 
+const WORKOUTS_STORAGE_KEY = 'natation.workouts.v1';
+
+const inferUnit = (distance: string): DistanceUnit => {
+  const val = (distance ?? '').toLowerCase();
+  if (val.includes('km')) return 'km';
+  if (val.includes('min')) return 'min';
+  if (val.includes('s')) return 's';
+  return 'm';
+};
+
+const extractNumericAmount = (distance: string): number | null => {
+  const normalized = (distance ?? '').replace(',', '.');
+  const multi = normalized.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+  if (multi) return parseFloat(multi[1]) * parseFloat(multi[2]);
+  const single = normalized.match(/(\d+(?:\.\d+)?)/);
+  return single ? parseFloat(single[1]) : null;
+};
+
+export const exerciseToMeters = (exercise: WorkoutExercise): number => {
+  const unit = exercise.unit ?? inferUnit(exercise.distance);
+  if (unit !== 'm' && unit !== 'km') return 0;
+  const amount = extractNumericAmount(exercise.distance);
+  if (amount == null || Number.isNaN(amount)) return 0;
+  return unit === 'km' ? amount * 1000 : amount;
+};
+
+export const sectionsToMeters = (sections: { exercises: { distance: string; unit?: DistanceUnit }[] }[]) =>
+  sections.reduce(
+    (sum, section) =>
+      sum + section.exercises.reduce((ss, ex) => ss + exerciseToMeters(ex), 0),
+    0
+  );
+
+const normalizeExercise = (exercise: WorkoutExercise): WorkoutExercise => ({
+  ...exercise,
+  distance: exercise.distance ?? '',
+  unit: exercise.unit ?? inferUnit(exercise.distance),
+});
+
+const normalizeWorkout = (workout: Workout): Workout => ({
+  ...workout,
+  sections: workout.sections.map(section => ({
+    ...section,
+    comment: section.comment ?? '',
+    exercises: section.exercises.map(normalizeExercise),
+  })),
+});
+
+const loadStoredWorkouts = () => {
+  if (typeof window === 'undefined') return MOCK_WORKOUTS;
+  const raw = localStorage.getItem(WORKOUTS_STORAGE_KEY);
+  if (!raw) return MOCK_WORKOUTS;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed.map(normalizeWorkout);
+  } catch {
+    /* ignore corrupt storage */
+  }
+  return MOCK_WORKOUTS;
+};
+
 export function WorkoutProvider({ children }: { children: ReactNode }) {
-  const [workouts, setWorkouts] = useState<Workout[]>(MOCK_WORKOUTS);
+  const [workouts, setWorkouts] = useState<Workout[]>(loadStoredWorkouts);
   const [sessions, setSessions] = useState<CompletedSession[]>(MOCK_SESSIONS);
   const [calendars, setCalendars] = useState<AppCalendar[]>(MOCK_CALENDARS);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(WORKOUTS_STORAGE_KEY, JSON.stringify(workouts));
+  }, [workouts]);
+
   const addWorkout = (workout: Omit<Workout, 'id' | 'createdAt'>): string => {
     const id = `workout-${Date.now()}`;
-    const newWorkout: Workout = { ...workout, id, createdAt: new Date().toISOString().split('T')[0] };
+    const newWorkout: Workout = normalizeWorkout({
+      ...workout,
+      id,
+      createdAt: new Date().toISOString().split('T')[0],
+    });
     setWorkouts(prev => [newWorkout, ...prev]);
     return id;
   };

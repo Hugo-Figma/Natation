@@ -7,7 +7,7 @@ import {
 import { createTypstCompiler } from '@myriaddreamin/typst.ts';
 import { CompileFormatEnum } from '@myriaddreamin/typst.ts/compiler';
 import typstTemplate from '../../typst/workout-template.typ?raw';
-import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout } from '../store/WorkoutContext';
+import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout, sectionsToMeters } from '../store/WorkoutContext';
 import { SwimWorkoutSheet } from './SwimWorkoutSheet';
 
 let typstCompilerPromise: Promise<ReturnType<typeof createTypstCompiler>> | null = null;
@@ -33,13 +33,6 @@ const getTypstCompiler = () => {
 const escapeTypstString = (value: string) =>
   value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 
-const computeTotalDistance = (sections: Workout['sections']) =>
-  sections.reduce(
-    (sum, section) =>
-      sum + section.exercises.reduce((ss, ex) => ss + (parseInt(ex.distance, 10) || 0), 0),
-    0
-  );
-
 const buildTypstWorkoutPayload = (workout: Workout) => {
   const sections = workout.sections.map(section => {
     const exercises = section.exercises
@@ -47,11 +40,13 @@ const buildTypstWorkoutPayload = (workout: Workout) => {
         description: "${escapeTypstString(ex.description)}",
         distance: "${escapeTypstString(ex.distance)}",
         type: "${escapeTypstString(ex.type)}",
+        unit: "${escapeTypstString(ex.unit ?? '')}",
       )`)
       .join(',');
 
     return `(
       title: "${escapeTypstString(section.title)}",
+      comment: "${escapeTypstString(section.comment ?? '')}",
       exercises: (${exercises})
     )`;
   }).join(',');
@@ -60,7 +55,7 @@ const buildTypstWorkoutPayload = (workout: Workout) => {
     name: "${escapeTypstString(workout.name)}",
     type: "${escapeTypstString(workout.type)}",
     created-at: "${escapeTypstString(workout.createdAt ?? '')}",
-    total-distance: ${computeTotalDistance(workout.sections)},
+    total-distance: ${sectionsToMeters(workout.sections)},
     sections: (${sections})
   )`;
 };
@@ -133,10 +128,12 @@ function exportWorkoutJSON(workout: ReturnType<typeof useWorkout>['workouts'][0]
     type: workout.type,
     sections: workout.sections.map(s => ({
       title: s.title,
+      comment: s.comment,
       exercises: s.exercises.map(e => ({
         description: e.description,
         type: e.type,
         distance: e.distance,
+        unit: e.unit,
       })),
     })),
   };
@@ -195,7 +192,8 @@ export function WorkoutDetailPage() {
     objective: workout.type,
     sections: workout.sections.map(s => ({
       title: s.title,
-      exercises: s.exercises.map(e => ({ distance: e.distance, type: e.type, description: e.description })),
+      comment: s.comment,
+      exercises: s.exercises.map(e => ({ distance: e.distance, type: e.type, description: e.description, unit: e.unit })),
     })),
   };
 

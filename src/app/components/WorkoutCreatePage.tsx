@@ -8,7 +8,7 @@ import {
   GripVertical, ArrowUp, ArrowDown, Upload,
 } from 'lucide-react';
 import {
-  useWorkout, ExerciseType, WorkoutType, LibraryExercise,
+  useWorkout, ExerciseType, WorkoutType, LibraryExercise, DistanceUnit,
   EXERCISE_TYPE_LABELS, EXERCISE_TYPE_COLORS, WORKOUT_TYPES,
 } from '../store/WorkoutContext';
 
@@ -18,14 +18,27 @@ const DND_OPTIONS = isTouchDevice() ? { enableMouseEvents: true } : {};
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 const EXERCISE_TYPES: ExerciseType[] = ['warmup', 'arms', 'legs', 'fins', 'intense', 'recovery', 'technical', 'fullbody'];
+const DISTANCE_UNITS: { value: DistanceUnit; label: string }[] = [
+  { value: 'm', label: 'm' },
+  { value: 'km', label: 'km' },
+  { value: 'min', label: 'min' },
+  { value: 's', label: 's' },
+  { value: 'reps', label: 'rép.' },
+];
 const DRAG_TYPE = 'EXERCISE_ITEM';
 
-/** Appends "m" if the value is purely numeric (e.g. "100" → "100m"). Leaves "4×50m", "3×30s", etc. untouched. */
-function normalizeDistance(val: string): string {
+/** Appends unit suffix if the value is purely numeric (e.g. "100" → "100m"). Leaves "4×50", "3×30" untouched. */
+function normalizeDistance(val: string, unit: DistanceUnit): string {
   const trimmed = val.trim();
   if (!trimmed) return trimmed;
   // purely numeric → add m
-  if (/^\d+$/.test(trimmed)) return trimmed + 'm';
+  if (/^\d+$/.test(trimmed)) {
+    if (unit === 'km') return `${trimmed}km`;
+    if (unit === 'min') return `${trimmed}min`;
+    if (unit === 's') return `${trimmed}s`;
+    if (unit === 'reps') return `${trimmed} rép.`;
+    return `${trimmed}m`;
+  }
   return trimmed;
 }
 
@@ -34,15 +47,18 @@ interface ExerciseDraft {
   description: string;
   type: ExerciseType;
   distance: string;
+  unit: DistanceUnit;
 }
 
 interface SectionDraft {
   id: string;
   title: string;
+  comment: string;
   exercises: ExerciseDraft[];
   pickerOpen: boolean;
   pendingExercise: LibraryExercise | null;
   pendingDistance: string;
+  pendingUnit: DistanceUnit;
 }
 
 interface DragItem { sectionId: string; index: number; }
@@ -58,7 +74,7 @@ function ExerciseTypeBadge({ type }: { type: ExerciseType }) {
 
 // ── Draggable exercise row ──────────────────────────────────────────────────
 function DraggableExercise({
-  exercise, sectionId, index, total, moveExercise, onRemove, onDistanceChange, onDistanceBlur,
+  exercise, sectionId, index, total, moveExercise, onRemove, onDistanceChange, onDistanceBlur, onUnitChange,
 }: {
   exercise: ExerciseDraft;
   sectionId: string;
@@ -68,6 +84,7 @@ function DraggableExercise({
   onRemove: () => void;
   onDistanceChange: (val: string) => void;
   onDistanceBlur: (val: string) => void;
+  onUnitChange: (unit: DistanceUnit) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -122,8 +139,15 @@ function DraggableExercise({
         onChange={e => onDistanceChange(e.target.value)}
         onBlur={e => onDistanceBlur(e.target.value)}
         className="w-16 text-center text-[11px] font-black text-blue-700 border border-blue-200 rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-blue-400 bg-white shrink-0"
-        placeholder="100m"
+        placeholder="100"
       />
+      <select
+        value={exercise.unit}
+        onChange={e => onUnitChange(e.target.value as DistanceUnit)}
+        className="w-16 text-center text-[10px] font-semibold text-blue-700 border border-blue-200 rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-blue-400 bg-white shrink-0"
+      >
+        {DISTANCE_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+      </select>
 
       {/* Move buttons — always visible on mobile, hover on desktop */}
       <div className="flex flex-col gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 shrink-0">
@@ -162,13 +186,24 @@ function WorkoutCreateInner() {
       return copySource.sections.map(s => ({
         id: generateId(),
         title: s.title,
-        exercises: s.exercises.map(e => ({ ...e, id: generateId() })),
+        comment: s.comment ?? '',
+        exercises: s.exercises.map(e => ({ ...e, id: generateId(), unit: e.unit ?? 'm' })),
         pickerOpen: false,
         pendingExercise: null,
         pendingDistance: '',
+        pendingUnit: 'm',
       }));
     }
-    return [{ id: generateId(), title: 'Échauffement', exercises: [], pickerOpen: false, pendingExercise: null, pendingDistance: '' }];
+    return [{
+      id: generateId(),
+      title: 'Échauffement',
+      comment: '',
+      exercises: [],
+      pickerOpen: false,
+      pendingExercise: null,
+      pendingDistance: '',
+      pendingUnit: 'm',
+    }];
   }, [copySource]);
 
   const [name, setName] = useState(copySource ? `${copySource.name} (copie)` : '');
@@ -179,6 +214,7 @@ function WorkoutCreateInner() {
   const [customDesc, setCustomDesc] = useState('');
   const [customType, setCustomType] = useState<ExerciseType>('warmup');
   const [customDistance, setCustomDistance] = useState('');
+  const [customUnit, setCustomUnit] = useState<DistanceUnit>('m');
   const [showCustom, setShowCustom] = useState(false);
   const [errors, setErrors] = useState<{ name?: boolean }>({});
 
@@ -199,13 +235,14 @@ function WorkoutCreateInner() {
       pickerOpen: s.id === sectionId ? !s.pickerOpen : false,
       pendingExercise: null,
       pendingDistance: '',
+      pendingUnit: 'm',
     })));
     setSearchQuery(''); setTypeFilter('all'); setShowCustom(false);
   };
 
   const addSection = () => setSections(prev => [...prev, {
-    id: generateId(), title: 'Nouvelle section', exercises: [],
-    pickerOpen: false, pendingExercise: null, pendingDistance: '',
+    id: generateId(), title: 'Nouvelle section', comment: '', exercises: [],
+    pickerOpen: false, pendingExercise: null, pendingDistance: '', pendingUnit: 'm',
   }]);
 
   const removeSection = (id: string) => setSections(prev => prev.filter(s => s.id !== id));
@@ -216,7 +253,14 @@ function WorkoutCreateInner() {
   const confirmPending = (sectionId: string) => {
     const section = sections.find(s => s.id === sectionId);
     if (!section?.pendingExercise) return;
-    const dist = normalizeDistance(section.pendingDistance) || '50m';
+    const fallbackByUnit = (unit: DistanceUnit) => {
+      if (unit === 'km') return '0.1km';
+      if (unit === 'min') return '1min';
+      if (unit === 's') return '30s';
+      if (unit === 'reps') return '1 rép.';
+      return '50m';
+    };
+    const dist = normalizeDistance(section.pendingDistance, section.pendingUnit) || fallbackByUnit(section.pendingUnit);
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s;
       return {
@@ -226,15 +270,17 @@ function WorkoutCreateInner() {
           description: s.pendingExercise!.description,
           type: s.pendingExercise!.type,
           distance: dist,
+          unit: section.pendingUnit,
         }],
         pendingExercise: null,
         pendingDistance: '',
+        pendingUnit: 'm',
       };
     }));
   };
 
   const cancelPending = (sectionId: string) =>
-    updateSection(sectionId, { pendingExercise: null, pendingDistance: '' });
+    updateSection(sectionId, { pendingExercise: null, pendingDistance: '', pendingUnit: 'm' });
 
   const removeExercise = (sectionId: string, exId: string) =>
     setSections(prev => prev.map(s => s.id !== sectionId ? s : { ...s, exercises: s.exercises.filter(e => e.id !== exId) }));
@@ -244,8 +290,20 @@ function WorkoutCreateInner() {
       ...s, exercises: s.exercises.map(e => e.id === exId ? { ...e, distance } : e),
     }));
 
+  const updateUnit = (sectionId: string, exId: string, unit: DistanceUnit) =>
+    setSections(prev => prev.map(s => s.id !== sectionId ? s : {
+      ...s, exercises: s.exercises.map(e => {
+        if (e.id !== exId) return e;
+        const stripped = e.distance.replace(/\s*(m|km|min|s|rép\.?)$/i, '');
+        const nextDistance = normalizeDistance(stripped || e.distance, unit) || stripped || e.distance;
+        return { ...e, unit, distance: nextDistance };
+      }),
+    }));
+
   const blurDistance = (sectionId: string, exId: string, raw: string) => {
-    const normalized = normalizeDistance(raw);
+    const section = sections.find(s => s.id === sectionId);
+    const unit = section?.exercises.find(e => e.id === exId)?.unit ?? 'm';
+    const normalized = normalizeDistance(raw, unit);
     if (normalized !== raw) updateDistance(sectionId, exId, normalized);
   };
 
@@ -274,17 +332,17 @@ function WorkoutCreateInner() {
       ...s,
       exercises: [...s.exercises, {
         id: generateId(), description: customDesc.trim(),
-        type: customType, distance: normalizeDistance(customDistance) || '50m',
+        type: customType, distance: normalizeDistance(customDistance, customUnit) || '50m', unit: customUnit,
       }],
     }));
-    setCustomDesc(''); setCustomDistance(''); setShowCustom(false);
+    setCustomDesc(''); setCustomDistance(''); setCustomUnit('m'); setShowCustom(false);
   };
 
   const handleSave = () => {
     if (!name.trim()) { setErrors({ name: true }); return; }
     addWorkout({
       name: name.trim(), type,
-      sections: sections.map(s => ({ id: s.id, title: s.title, exercises: s.exercises })),
+      sections: sections.map(s => ({ id: s.id, title: s.title, comment: s.comment, exercises: s.exercises })),
     });
     navigate('/');
   };
@@ -303,12 +361,15 @@ function WorkoutCreateInner() {
           setSections(data.sections.map((s: any) => ({
             id: generateId(),
             title: s.title ?? 'Section',
+            comment: s.comment ?? '',
             pickerOpen: false, pendingExercise: null, pendingDistance: '',
+            pendingUnit: 'm',
             exercises: (Array.isArray(s.exercises) ? s.exercises : []).map((e: any) => ({
               id: generateId(),
               description: e.description ?? '',
               type: e.type ?? 'fullbody',
               distance: e.distance ?? '100m',
+              unit: e.unit ?? 'm',
             })),
           })));
         }
@@ -417,6 +478,16 @@ function WorkoutCreateInner() {
 
             {/* Exercises */}
             <div className="p-2 sm:p-3">
+              <div className="mb-2">
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1">Commentaire / temps estimé</label>
+                <input
+                  type="text"
+                  value={section.comment}
+                  onChange={e => updateSection(section.id, { comment: e.target.value })}
+                  placeholder="Ex: 10 min souple, récupération 1 min…"
+                  className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+              </div>
               {section.exercises.length === 0 && !section.pickerOpen && (
                 <p className="text-center text-gray-400 text-xs py-2">Aucun exercice</p>
               )}
@@ -432,6 +503,7 @@ function WorkoutCreateInner() {
                     onRemove={() => removeExercise(section.id, ex.id)}
                     onDistanceChange={val => updateDistance(section.id, ex.id, val)}
                     onDistanceBlur={val => blurDistance(section.id, ex.id, val)}
+                    onUnitChange={val => updateUnit(section.id, ex.id, val)}
                   />
                 ))}
               </div>
@@ -451,10 +523,17 @@ function WorkoutCreateInner() {
                       type="text" value={section.pendingDistance}
                       onChange={e => updateSection(section.id, { pendingDistance: e.target.value })}
                       onKeyDown={e => { if (e.key === 'Enter') confirmPending(section.id); if (e.key === 'Escape') cancelPending(section.id); }}
-                      placeholder="ex: 100m, 4×50m…"
+                      placeholder="ex: 100, 4×50…"
                       autoFocus
                       className="flex-1 border border-blue-300 rounded-lg px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                     />
+                    <select
+                      value={section.pendingUnit}
+                      onChange={e => updateSection(section.id, { pendingUnit: e.target.value as DistanceUnit })}
+                      className="text-xs border border-blue-300 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      {DISTANCE_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                    </select>
                     <button onClick={() => confirmPending(section.id)}
                       className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-black hover:bg-blue-700 transition-colors shrink-0">
                       <Plus className="w-3.5 h-3.5" />
@@ -528,7 +607,11 @@ function WorkoutCreateInner() {
                             {EXERCISE_TYPES.map(t => <option key={t} value={t}>{EXERCISE_TYPE_LABELS[t]}</option>)}
                           </select>
                           <input type="text" value={customDistance} onChange={e => setCustomDistance(e.target.value)}
-                            placeholder="100m" className="w-20 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-center outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+                            placeholder="100" className="w-20 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-center outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+                          <select value={customUnit} onChange={e => setCustomUnit(e.target.value as DistanceUnit)}
+                            className="w-20 text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-center outline-none focus:ring-2 focus:ring-blue-400 bg-white">
+                            {DISTANCE_UNITS.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                          </select>
                           <button onClick={() => addCustomExercise(section.id)} disabled={!customDesc.trim()}
                             className="bg-blue-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-black hover:bg-blue-700 disabled:opacity-40 shrink-0">
                             <Plus className="w-3 h-3" />

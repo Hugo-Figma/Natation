@@ -1,23 +1,15 @@
 import { useRef } from 'react';
 import { Link } from 'react-router';
 import { Plus, Waves, Trash2, Eye, Dumbbell, ChevronRight, Star, Copy, Download, Upload } from 'lucide-react';
-import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout } from '../store/WorkoutContext';
-
-function getTotalDistance(sections: { exercises: { distance: string }[] }[]) {
-  return sections.reduce(
-    (sum, s) => sum + s.exercises.reduce((ss, ex) => {
-      const m = ex.distance.match(/^(\d+)/);
-      return ss + (m ? parseInt(m[1]) : 0);
-    }, 0), 0
-  );
-}
+import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout, sectionsToMeters } from '../store/WorkoutContext';
 
 function exportWorkoutJSON(workout: Workout) {
   const data = {
     name: workout.name, type: workout.type,
     sections: workout.sections.map(s => ({
       title: s.title,
-      exercises: s.exercises.map(e => ({ description: e.description, type: e.type, distance: e.distance })),
+      comment: s.comment,
+      exercises: s.exercises.map(e => ({ description: e.description, type: e.type, distance: e.distance, unit: e.unit })),
     })),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -59,11 +51,13 @@ export function WorkoutListPage() {
           sections: (Array.isArray(data.sections) ? data.sections : []).map((s: any, si: number) => ({
             id: `imp-s-${Date.now()}-${si}`,
             title: s.title ?? 'Section',
+            comment: s.comment ?? '',
             exercises: (Array.isArray(s.exercises) ? s.exercises : []).map((e: any, ei: number) => ({
               id: `imp-e-${Date.now()}-${si}-${ei}`,
               description: e.description ?? '',
               type: e.type ?? 'fullbody',
               distance: e.distance ?? '100m',
+              unit: e.unit ?? 'm',
             })),
           })),
         });
@@ -74,7 +68,7 @@ export function WorkoutListPage() {
     e.target.value = '';
   };
 
-  const totalDistAll = workouts.reduce((sum, w) => sum + getTotalDistance(w.sections), 0);
+  const totalDistAll = Math.round(workouts.reduce((sum, w) => sum + sectionsToMeters(w.sections), 0));
   const avgFeelingAll = sessions.filter(s => s.feeling).length > 0
     ? (sessions.reduce((s, se) => s + (se.feeling ?? 0), 0) / sessions.filter(s => s.feeling).length).toFixed(1)
     : null;
@@ -122,7 +116,7 @@ export function WorkoutListPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {workouts.map(workout => {
             const colors = WORKOUT_TYPE_COLORS[workout.type];
-            const totalDist = getTotalDistance(workout.sections);
+            const totalDist = Math.round(sectionsToMeters(workout.sections));
             const sessionCount = getSessionCount(workout.id);
             const avgF = getAvgFeeling(workout.id);
 
