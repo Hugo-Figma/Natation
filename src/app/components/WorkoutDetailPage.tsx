@@ -2,10 +2,111 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
 import {
   ArrowLeft, Printer, CheckCircle, Star, X, Trash2,
-  MoreVertical, Download, Copy,
+  MoreVertical, Download, Copy, FileText,
 } from 'lucide-react';
-import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType } from '../store/WorkoutContext';
+import { createTypstCompiler } from '@myriaddreamin/typst.ts';
+import { CompileFormatEnum } from '@myriaddreamin/typst.ts/compiler';
+import typstTemplate from '../../typst/workout-template.typ?raw';
+import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout } from '../store/WorkoutContext';
 import { SwimWorkoutSheet } from './SwimWorkoutSheet';
+
+let typstCompilerPromise: Promise<ReturnType<typeof createTypstCompiler>> | null = null;
+
+const getTypstCompiler = () => {
+  if (!typstCompilerPromise) {
+    const wasmUrl = new URL(
+      '@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm',
+      import.meta.url
+    );
+
+    typstCompilerPromise = (async () => {
+      const compiler = createTypstCompiler();
+      await compiler.init({
+        getModule: () => fetch(wasmUrl).then(res => res.arrayBuffer()),
+      });
+      return compiler;
+    })();
+  }
+  return typstCompilerPromise;
+};
+
+const escapeTypstString = (value: string) =>
+  value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+
+const computeTotalDistance = (sections: Workout['sections']) =>
+  sections.reduce(
+    (sum, section) =>
+      sum + section.exercises.reduce((ss, ex) => ss + (parseInt(ex.distance, 10) || 0), 0),
+    0
+  );
+
+const buildTypstWorkoutPayload = (workout: Workout) => {
+  const sections = workout.sections.map(section => {
+    const exercises = section.exercises
+      .map(ex => `(
+        description: "${escapeTypstString(ex.description)}",
+        distance: "${escapeTypstString(ex.distance)}",
+        type: "${escapeTypstString(ex.type)}",
+      )`)
+      .join(',');
+
+    return `(
+      title: "${escapeTypstString(section.title)}",
+      exercises: (${exercises})
+    )`;
+  }).join(',');
+
+  return `(
+    name: "${escapeTypstString(workout.name)}",
+    type: "${escapeTypstString(workout.type)}",
+    created-at: "${escapeTypstString(workout.createdAt ?? '')}",
+    total-distance: ${computeTotalDistance(workout.sections)},
+    sections: (${sections})
+  )`;
+};
+
+async function generateWorkoutPdf(workout: Workout) {
+  const compiler = await getTypstCompiler();
+  await compiler.reset();
+
+  compiler.addSource('/workout-template.typ', typstTemplate);
+  const mainSource = `
+#import "/workout-template.typ": render-workout
+#show: render-workout(${buildTypstWorkoutPayload(workout)})
+  `;
+  compiler.addSource('/main.typ', mainSource);
+
+  const result = await compiler.compile({
+    mainFilePath: '/main.typ',
+    format: CompileFormatEnum.pdf,
+  });
+
+  if (!result.result) {
+    const diagnostics = result.diagnostics
+      ?.map(d => (typeof d === 'string' ? d : JSON.stringify(d)))
+      .join('\n');
+    throw new Error(`Typst compilation failed${diagnostics ? `:\n${diagnostics}` : ''}`);
+  }
+
+  return result.result;
+}
+
+async function exportWorkoutPdf(workout: Workout) {
+  const pdfBytes = await generateWorkoutPdf(workout);
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = workout.name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_');
+    a.download = `${safeName}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
@@ -66,6 +167,7 @@ export function WorkoutDetailPage() {
   // Actions dropdown
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -164,6 +266,26 @@ export function WorkoutDetailPage() {
                 >
                   <Printer className="w-4 h-4 text-blue-500" />
                   Imprimer
+                </button>
+                <button
+                  onClick={async () => {
+                    setExportingPdf(true);
+                    try {
+                      await exportWorkoutPdf(workout);
+                    } catch (err) {
+                      console.error(err);
+                      const message = err instanceof Error ? err.message : String(err);
+                      alert(`Impossible de générer le PDF : ${message}`);
+                    } finally {
+                      setExportingPdf(false);
+                      setMenuOpen(false);
+                    }
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={exportingPdf}
+                >
+                  <FileText className="w-4 h-4 text-emerald-500" />
+                  {exportingPdf ? 'Export PDF…' : 'Exporter PDF'}
                 </button>
                 <button
                   onClick={() => { exportWorkoutJSON(workout); setMenuOpen(false); }}
