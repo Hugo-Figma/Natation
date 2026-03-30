@@ -69,7 +69,7 @@
 #let exercise-card(ex) = [
   #let palette = exercise-palettes.at(ex.type, default: default-exercise-palette)
   #let unit = ex.at("unit", default: "")
-  #let distance-text = ex.distance + (if unit != "" { " " + unit } else { "" })
+  #let distance-text = ex.distance + if unit != "" { " " + unit } else { "" }
   #box(
     fill: palette.bg,
     stroke: (paint: palette.border, thickness: 0.9pt),
@@ -126,7 +126,13 @@
       #text("Distance totale", size: 10pt, weight: "medium")
       #text(str(workout.at("total-distance", default: 0)) + " m", size: 18pt, weight: "bold")
     ]
-    #box(width: 30pt, height: 30pt, radius: 16pt, fill: white, stroke: (paint: accent.light, thickness: 0.8pt))
+    #box(
+      width: 30pt,
+      height: 30pt,
+      radius: 16pt,
+      fill: white,
+      stroke: (paint: accent.light, thickness: 0.8pt),
+    )[ #align(center + horizon)[#text("💧", fill: accent.accent)] ]
   ]
 ]
 
