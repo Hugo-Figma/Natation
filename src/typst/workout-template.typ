@@ -130,7 +130,7 @@
   ]
 ]
 
-#let footer_notes() = box(
+#let footer-notes() = box(
   stroke: (paint: rgb(226, 232, 240), thickness: 0.8pt),
   radius: 10pt,
   inset: 10pt,
@@ -165,6 +165,6 @@
       ]
     ]
     #total-banner(workout, accent)
-    #footer_notes()
+    #footer-notes()
   ]
 ]
