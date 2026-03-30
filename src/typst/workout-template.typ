@@ -40,7 +40,8 @@
   radius: 12pt,
   inset: 14pt,
 )[
-  #let section-count = array(workout.at("sections", default: ())).len()
+  #let sections = workout.at("sections", default: ())
+  #let section-count = sections.len()
   #stack(spacing: 8pt, [
     #grid(columns: (auto, 1fr, auto), gutter: 10pt)[
       #box(width: 20pt, height: 20pt, radius: 12pt, fill: accent.accent)
@@ -95,7 +96,7 @@
   inset: 12pt,
   fill: white,
 )[
-  #let exercises = array(section.exercises)
+  #let exercises = section.exercises
   #stack(spacing: 8pt, [
     #grid(columns: (auto, 1fr), gutter: 8pt)[
       #dot(accent.accent)
