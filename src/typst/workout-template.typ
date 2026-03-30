@@ -40,6 +40,7 @@
   radius: 12pt,
   inset: 14pt,
 )[
+  #let section-count = array(workout.at("sections", default: ())).len()
   #stack(spacing: 8pt, [
     #grid(columns: (auto, 1fr, auto), gutter: 10pt)[
       #box(width: 20pt, height: 20pt, radius: 12pt, fill: accent.accent)
@@ -50,10 +51,13 @@
           #text("Créé le " + date, size: 10pt, fill: rgb(71, 85, 105))
         ]
       ]
-      #pill(workout.type, (bg: accent.light, border: accent.accent, text: accent.accent))
+      #pill(
+        "Sections : " + str(section-count),
+        (bg: accent.light, border: accent.accent, text: accent.accent),
+      )
     ]
     #pill(
-      "Objectif : " + workout.type,
+      "Type : " + workout.type,
       (bg: rgb(239, 246, 255), border: rgb(191, 219, 254), text: accent.text),
     )
   ])
