@@ -23,7 +23,7 @@
 )
 
 #let default-exercise-palette = (bg: rgb(241, 245, 249), border: rgb(203, 213, 225), text: rgb(51, 65, 85))
-#let water-icon = "●"
+#let water-icon = "●" // symbole utilisé dans le bandeau de distance totale
 
 #let pill(label, palette) = box(
   inset: (x: 8pt, y: 4pt),
