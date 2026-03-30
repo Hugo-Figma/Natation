@@ -11,7 +11,7 @@
   "Récupération": (accent: rgb(34, 197, 94), light: rgb(220, 252, 231), text: rgb(22, 101, 52)),
 )
 
-#let exercise-palettes = (
+#let exercise-palette-map = (
   "warmup":    (bg: rgb(219, 234, 254), border: rgb(191, 219, 254), text: rgb(30, 64, 175)),
   "arms":      (bg: rgb(207, 250, 254), border: rgb(165, 243, 252), text: rgb(8, 145, 178)),
   "legs":      (bg: rgb(224, 231, 255), border: rgb(191, 219, 254), text: rgb(37, 99, 235)),
@@ -23,6 +23,7 @@
 )
 
 #let default-exercise-palette = (bg: rgb(241, 245, 249), border: rgb(203, 213, 225), text: rgb(51, 65, 85))
+#let water-icon = "💧"
 
 #let pill(label, palette) = box(
   inset: (x: 8pt, y: 4pt),
@@ -67,9 +68,9 @@
 ]
 
 #let exercise-card(ex) = [
-  #let palette = exercise-palettes.at(ex.type, default: default-exercise-palette)
+  #let palette = exercise-palette-map.at(ex.type, default: default-exercise-palette)
   #let unit = ex.at("unit", default: "")
-  #let distance-text = ex.distance + if unit != "" { " " + unit } else { "" }
+  #let distance-text = str(ex.distance) + if unit != "" { " " + unit } else { "" }
   #box(
     fill: palette.bg,
     stroke: (paint: palette.border, thickness: 0.9pt),
@@ -132,7 +133,7 @@
       radius: 16pt,
       fill: white,
       stroke: (paint: accent.light, thickness: 0.8pt),
-    )[ #align(center + horizon)[#text("💧", fill: accent.accent)] ]
+    )[ #align(center + horizon)[#text(water-icon, fill: accent.accent)] ]
   ]
 ]
 
