@@ -22,6 +22,8 @@
   "fullbody":  (bg: rgb(224, 231, 255), border: rgb(199, 210, 254), text: rgb(67, 56, 202)),
 )
 
+#let default-exercise-palette = (bg: rgb(241, 245, 249), border: rgb(203, 213, 225), text: rgb(51, 65, 85))
+
 #let pill(label, palette) = box(
   inset: (x: 8pt, y: 4pt),
   radius: 8pt,
@@ -34,7 +36,7 @@
 
 #let dot(color) = box(width: 9pt, height: 9pt, radius: 10pt, fill: color)
 
-#let header(workout, accent) = box(
+#let workout-header(workout, accent) = box(
   fill: accent.light,
   stroke: (paint: accent.accent, thickness: 0.8pt),
   radius: 12pt,
@@ -65,7 +67,7 @@
 ]
 
 #let exercise-card(ex) = [
-  #let palette = exercise-palettes.at(ex.type, default: (bg: rgb(241, 245, 249), border: rgb(203, 213, 225), text: rgb(51, 65, 85)))
+  #let palette = exercise-palettes.at(ex.type, default: default-exercise-palette)
   #let unit = ex.at("unit", default: "")
   #let distance-text = ex.distance + (if unit != "" { " " + unit } else { "" })
   #box(
@@ -128,7 +130,7 @@
   ]
 ]
 
-#let footer-notes() = box(
+#let footer_notes() = box(
   stroke: (paint: rgb(226, 232, 240), thickness: 0.8pt),
   radius: 10pt,
   inset: 10pt,
@@ -152,16 +154,17 @@
 ]
 
 #let render-workout(workout) = [
-  #let accent = type-colors.at(workout.type, default: (accent: rgb(59, 130, 246), light: rgb(219, 234, 254), text: rgb(30, 64, 175)))
+  #let default-type-accent = (accent: rgb(59, 130, 246), light: rgb(219, 234, 254), text: rgb(30, 64, 175))
+  #let accent = type-colors.at(workout.type, default: default-type-accent)
   #let sections = array(workout.sections)
   #stack(spacing: 14pt)[
-    #header(workout, accent)
+    #workout-header(workout, accent)
     #stack(spacing: 10pt)[
       #for section in sections [
         #section-card(section, accent)
       ]
     ]
     #total-banner(workout, accent)
-    #footer-notes()
+    #footer_notes()
   ]
 ]
