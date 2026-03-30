@@ -23,7 +23,7 @@
 )
 
 #let default-exercise-palette = (bg: rgb(241, 245, 249), border: rgb(203, 213, 225), text: rgb(51, 65, 85))
-#let water-icon = "💧"
+#let water-icon = "●"
 
 #let pill(label, palette) = box(
   inset: (x: 8pt, y: 4pt),
@@ -70,7 +70,7 @@
 #let exercise-card(ex) = [
   #let palette = exercise-palette-map.at(ex.type, default: default-exercise-palette)
   #let unit = ex.at("unit", default: "")
-  #let distance-text = str(ex.distance) + if unit != "" { " " + unit } else { "" }
+  #let distance-text = str(ex.distance) + if unit != "" { " " + unit }
   #box(
     fill: palette.bg,
     stroke: (paint: palette.border, thickness: 0.9pt),
