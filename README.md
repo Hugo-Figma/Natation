@@ -23,7 +23,7 @@ Pour vérifier le rendu du template Typst directement depuis l'interface :
 2. Ouvrir le menu `…` en haut à droite.
 3. Choisir « Exporter PDF ». La compilation Typst se fait dans le navigateur et télécharge le PDF.
 
-Si vous préférez un test rapide en ligne de commande (sans navigateur), lancez `node tmp-typst.mjs`. Le script compile un exemple minimal et affiche `ok` si la compilation Typst passe.
+Si vous préférez un test rapide en ligne de commande (sans navigateur), lancez `node tmp-typst.mjs` (script déjà présent à la racine). Il compile un exemple minimal et affiche `ok` si la compilation Typst passe.*** End Patch)objetojson to=functions.apply_patch proper format? need newline end. Let's send. Wait format invalid? Need newline between patch. Let's resend correctly. Let's send as text patch.*** Begin Patch
 
 ## Plan de validation pour la PR
 
