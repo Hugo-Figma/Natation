@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { createTypstCompiler } from '@myriaddreamin/typst.ts';
 import { CompileFormatEnum } from '@myriaddreamin/typst.ts/compiler';
+import { preloadFontAssets } from '@myriaddreamin/typst.ts/options.init';
 import typstTemplate from '../../typst/workout-template.typ?raw';
 import { useWorkout, WORKOUT_TYPE_COLORS, WorkoutType, Workout, sectionsToMeters } from '../store/WorkoutContext';
 import { SwimWorkoutSheet } from './SwimWorkoutSheet';
@@ -23,6 +24,9 @@ const getTypstCompiler = () => {
       const compiler = createTypstCompiler();
       await compiler.init({
         getModule: () => fetch(wasmUrl).then(res => res.arrayBuffer()),
+        beforeBuild: [
+          preloadFontAssets({ assets: ['text'] }),
+        ],
       });
       return compiler;
     })();
